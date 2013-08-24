@@ -180,6 +180,27 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
     }
 
     /**
+     * Returns {@code true} if direct {@link ByteBuf}'s are pooled
+     */
+    public boolean isDirectPooled() {
+        return false;
+    }
+
+    /**
+     * Returns {@code true} if heap {@link ByteBuf}'s are pooled
+     */
+    public boolean isHeapPooled() {
+        return false;
+    }
+
+    /**
+     * Returns {@code true} if {@link CompositeByteBuf}'s are pooled
+     */
+    public boolean isCompositePooled() {
+        return false;
+    }
+
+    /**
      * Create a heap {@link ByteBuf} with the given initialCapacity and maxCapacity.
      */
     protected abstract ByteBuf newHeapBuffer(int initialCapacity, int maxCapacity);

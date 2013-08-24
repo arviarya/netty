@@ -240,6 +240,16 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator {
         }
     }
 
+    @Override
+    public boolean isDirectPooled() {
+        return directArenas != null;
+    }
+
+    @Override
+    public boolean isHeapPooled() {
+        return heapArenas != null;
+    }
+
     public String toString() {
         StringBuilder buf = new StringBuilder();
         buf.append(heapArenas.length);

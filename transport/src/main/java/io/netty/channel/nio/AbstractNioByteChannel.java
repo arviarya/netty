@@ -15,6 +15,7 @@
  */
 package io.netty.channel.nio;
 
+import io.netty.buffer.AbstractByteBufAllocator;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
@@ -160,10 +161,14 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                     continue;
                 }
                 if (!buf.isDirect()) {
-                    // no direct buffer so replace it as otherwise the jdk will do the copy with it's own
-                    // pool
-                    buf = alloc().directBuffer(readableBytes).writeBytes(buf);
-                    in.current(buf);
+                    ByteBufAllocator alloc = alloc();
+                    if (alloc instanceof AbstractByteBufAllocator
+                            && ((AbstractByteBufAllocator) alloc).isDirectPooled()) {
+                        // no direct buffer so replace it as otherwise the jdk will do the copy with it's own
+                        // pool
+                        buf = alloc().directBuffer(readableBytes).writeBytes(buf);
+                        in.current(buf);
+                    }
                 }
                 boolean done = false;
                 long flushedAmount = 0;

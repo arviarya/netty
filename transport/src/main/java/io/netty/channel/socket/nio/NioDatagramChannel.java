@@ -15,7 +15,9 @@
  */
 package io.netty.channel.socket.nio;
 
+import io.netty.buffer.AbstractByteBufAllocator;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufHolder;
 import io.netty.channel.AddressedEnvelope;
 import io.netty.channel.Channel;
@@ -30,7 +32,6 @@ import io.netty.channel.nio.AbstractNioMessageChannel;
 import io.netty.channel.socket.DatagramChannelConfig;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.InternetProtocolFamily;
-import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.PlatformDependent;
 import io.netty.util.internal.StringUtil;
 
@@ -253,12 +254,19 @@ public final class NioDatagramChannel
             return true;
         }
 
-        boolean direct = data.nioBufferCount() == 1 && data.isDirect();
+        ByteBufAllocator alloc = alloc();
+        boolean needsCopy = data.nioBufferCount() != 1;
+        if (!needsCopy) {
+            if (!data.isDirect() && alloc instanceof AbstractByteBufAllocator
+                    && ((AbstractByteBufAllocator) alloc).isDirectPooled()) {
+                needsCopy = true;
+            }
+        }
         ByteBuffer nioData;
-        if (direct) {
+        if (!needsCopy) {
             nioData = data.nioBuffer();
         } else {
-            data = alloc().directBuffer(dataLen).writeBytes(data);
+            data = alloc.directBuffer(dataLen).writeBytes(data);
             nioData = data.nioBuffer();
         }
 
@@ -270,7 +278,7 @@ public final class NioDatagramChannel
         }
 
         boolean done =  writtenBytes > 0;
-        if (!direct) {
+        if (needsCopy) {
             // This means we have allocated a new buffer and need to store it back so we not need to allocate it again
             // later
             if (remoteAddress == null) {

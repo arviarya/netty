@@ -19,7 +19,9 @@ import com.sun.nio.sctp.Association;
 import com.sun.nio.sctp.MessageInfo;
 import com.sun.nio.sctp.NotificationHandler;
 import com.sun.nio.sctp.SctpChannel;
+import io.netty.buffer.AbstractByteBufAllocator;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelException;
 import io.netty.channel.ChannelFuture;
@@ -301,12 +303,19 @@ public class NioSctpChannel extends AbstractNioMessageChannel implements io.nett
             return true;
         }
 
-        boolean direct = data.nioBufferCount() == 1 && data.isDirect();
+        ByteBufAllocator alloc = alloc();
+        boolean needsCopy = data.nioBufferCount() != 1;
+        if (!needsCopy) {
+            if (!data.isDirect() && alloc instanceof AbstractByteBufAllocator
+                    && ((AbstractByteBufAllocator) alloc).isDirectPooled()) {
+                needsCopy = true;
+            }
+        }
         ByteBuffer nioData;
-        if (direct) {
+        if (!needsCopy) {
             nioData = data.nioBuffer();
         } else {
-            data = alloc().directBuffer(dataLen).writeBytes(data);
+            data = alloc.directBuffer(dataLen).writeBytes(data);
             nioData = data.nioBuffer();
         }
 
@@ -317,7 +326,7 @@ public class NioSctpChannel extends AbstractNioMessageChannel implements io.nett
         final int writtenBytes = javaChannel().send(nioData, mi);
 
         boolean done = writtenBytes > 0;
-        if (!direct) {
+        if (needsCopy) {
             if (!done) {
                 in.current(new SctpMessage(mi, data));
             } else {

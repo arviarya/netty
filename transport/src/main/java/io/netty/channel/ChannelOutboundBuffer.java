@@ -19,7 +19,9 @@
  */
 package io.netty.channel;
 
+import io.netty.buffer.AbstractByteBufAllocator;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufHolder;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.Recycler;
@@ -319,7 +321,11 @@ public final class ChannelOutboundBuffer {
         int nioBufferCount = 0;
 
         final int mask = buffer.length - 1;
-
+        boolean copyBuffers = false;
+        final ByteBufAllocator alloc = channel.alloc();
+        if (alloc instanceof AbstractByteBufAllocator && ((AbstractByteBufAllocator) alloc).isDirectPooled()) {
+           copyBuffers = true;
+        }
         Object m;
         int i = flushed;
         while (i != unflushed && (m = buffer[i].msg) != null) {
@@ -337,7 +343,7 @@ public final class ChannelOutboundBuffer {
             if (readableBytes > 0) {
                 nioBufferSize += readableBytes;
 
-                if (buf.isDirect()) {
+                if (buf.isDirect() || !copyBuffers) {
                     int count = buf.nioBufferCount();
                     if (count == 1) {
                         if (nioBufferCount == nioBuffers.length) {
@@ -346,7 +352,7 @@ public final class ChannelOutboundBuffer {
                         nioBuffers[nioBufferCount ++] = buf.internalNioBuffer(readerIndex, readableBytes);
                     } else {
                         ByteBuffer[] nioBufs = buf.nioBuffers();
-                        if (nioBufferCount + nioBufs.length == nioBuffers.length + 1) {
+                        if (nioBufferCount + nioBufs.length > nioBuffers.length) {
                             this.nioBuffers = nioBuffers = doubleNioBufferArray(nioBuffers, nioBufferCount);
                         }
                         for (ByteBuffer nioBuf: nioBufs) {
@@ -357,7 +363,7 @@ public final class ChannelOutboundBuffer {
                         }
                     }
                 } else {
-                    ByteBuf directBuf = channel.alloc().directBuffer(readableBytes);
+                    ByteBuf directBuf = alloc.directBuffer(readableBytes);
                     directBuf.writeBytes(buf, readerIndex, readableBytes);
                     buf.release();
                     buffer[i].msg = directBuf;
