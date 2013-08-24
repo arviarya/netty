@@ -183,6 +183,7 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
      * Returns {@code true} if direct {@link ByteBuf}'s are pooled
      */
     public boolean isDirectPooled() {
+        // TODO: Add method to ByteBufAllocator interface for 4.1.0
         return false;
     }
 
@@ -190,6 +191,7 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
      * Returns {@code true} if heap {@link ByteBuf}'s are pooled
      */
     public boolean isHeapPooled() {
+        // TODO: Add method to ByteBufAllocator interface for 4.1.0
         return false;
     }
 
@@ -197,6 +199,7 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
      * Returns {@code true} if {@link CompositeByteBuf}'s are pooled
      */
     public boolean isCompositePooled() {
+        // TODO: Add method to ByteBufAllocator interface for 4.1.0
         return false;
     }
 
